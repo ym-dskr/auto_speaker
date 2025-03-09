@@ -3,26 +3,51 @@ import numpy as np  # 数値データ処理のためのライブラリ
 import wave  # 音声データをWAVファイルとして保存
 import subprocess  # Whisperの実行を行うためのライブラリ（外部コマンド実行）
 
-# サンプリングレート（音声データの品質設定）
-SAMPLE_RATE = 16000  # 16kHz（Whisperの推奨値）
-DURATION = 5  # 録音時間（秒）
+# 録音設定
+SAMPLE_RATE = 16000  # 16kHz（Whisper推奨）
+THRESHOLD = 1000  # 音のしきい値（環境に応じて調整）
+SILENCE_DURATION = 1.3  # 無音が続いたら録音終了（秒）
+
+def is_speaking(audio_chunk):
+    """
+    音声があるかどうかを判定
+    - `THRESHOLD` を超える音が含まれているかチェック
+    """
+    return np.max(np.abs(audio_chunk)) > THRESHOLD
 
 def record_audio(filename="input.wav"):
     """
-    マイクから音声を録音し、WAVファイルとして保存する。
+    しゃべり始めと終わりを検知して録音する。
     """
-    print("録音開始...")
-    # 録音開始（モノラル1チャンネル、16bit整数型）
-    audio = sd.rec(int(SAMPLE_RATE * DURATION), samplerate=SAMPLE_RATE, channels=1, dtype=np.int16)
-    sd.wait()  # 録音終了を待機
-    print("録音終了。")
+    print("録音を待機中...")
+    
+    recording = []
+    silence_counter = 0
+    is_recording = False
 
-    # WAVファイルに保存
+    with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype=np.int16) as stream:
+        while True:
+            audio_chunk, _ = stream.read(int(SAMPLE_RATE * 0.1))  # 100msごとに音声を取得
+            recording.append(audio_chunk)
+
+            if is_speaking(audio_chunk):  # 発話を検知
+                if not is_recording:
+                    print("録音開始！")
+                    is_recording = True
+                silence_counter = 0  # 無音カウンターをリセット
+            elif is_recording:  # すでに録音中なら無音をカウント
+                silence_counter += 0.1
+                if silence_counter > SILENCE_DURATION:
+                    print("録音終了。")
+                    break  # 無音が続いたら録音終了
+
+    # 録音データをWAVファイルに保存
+    audio_data = np.concatenate(recording, axis=0)
     with wave.open(filename, "wb") as wf:
-        wf.setnchannels(1)  # モノラル音声
-        wf.setsampwidth(2)  # 16bit（2バイト）
-        wf.setframerate(SAMPLE_RATE)  # 16kHz
-        wf.writeframes(audio.tobytes())  # 録音データを書き込み
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(SAMPLE_RATE)
+        wf.writeframes(audio_data.tobytes())
 
     return filename  # 録音したファイルのパスを返す
 
