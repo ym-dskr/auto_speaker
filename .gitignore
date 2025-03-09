@@ -1,0 +1,140 @@
+# OS固有のファイル
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ログファイル
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# 実行ファイルとバイナリ
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# アーカイブ
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# IDE・エディタ固有のファイル
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.vs/
+*.swp
+*.swo
+*~
+
+# Node.js
+node_modules/
+jspm_packages/
+.npm
+.node_repl_history
+package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.venv
+venv/
+ENV/
+
+# Java
+*.class
+.mtj.tmp/
+*.jar
+*.war
+*.ear
+hs_err_pid*
+.gradle/
+.mvn/
+target/
+
+# Ruby
+*.gem
+*.rbc
+/.config
+/coverage/
+/InstalledFiles
+/pkg/
+/spec/reports/
+/spec/examples.txt
+/test/tmp/
+/test/version_tmp/
+/tmp/
+.byebug_history
+
+# 環境変数ファイル
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# キャッシュとデータベース
+*.sqlite
+*.sqlite3
+*.db
+.sass-cache/
+.eslintcache
+
+# ビルド生成物
+/dist
+/tmp
+/out-tsc
+/build
+/public/build
+
+# 依存関係
+/vendor/
+/bower_components/
+
+# その他
+.DS_Store
+Thumbs.db
+.directory
+*~
+*.swp
+.project
+.classpath
+.settings/
+*.wav
