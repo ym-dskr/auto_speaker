@@ -6,7 +6,7 @@ import subprocess  # Whisperの実行を行うためのライブラリ（外部�
 # 録音設定
 SAMPLE_RATE = 16000  # 16kHz（Whisper推奨）
 THRESHOLD = 1000  # 音のしきい値（環境に応じて調整）
-SILENCE_DURATION = 1.3  # 無音が続いたら録音終了（秒）
+SILENCE_DURATION = 1.0  # 無音が続いたら録音終了（秒）
 
 def is_speaking(audio_chunk):
     """

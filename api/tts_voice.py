@@ -19,7 +19,7 @@ def text_to_speech(text, mp3_filename="response.mp3", wav_filename="response.wav
     data = {
         "model": "tts-1",  # 最新のTTSモデル
         "input": text,
-        "voice": "alloy"  # 話者の選択（alloy, echo, fable, onyx, nova, shimmer）
+        "voice": "nova"  # 話者の選択（alloy, echo, fable, onyx, nova, shimmer）
     }
     response = requests.post(url, headers=headers, json=data)
 
