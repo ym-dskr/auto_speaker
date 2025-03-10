@@ -29,7 +29,7 @@
 
 
 import logging
-from auto_speaker.display import epdconfig
+from display import epdconfig
 
 # Display resolution
 EPD_WIDTH       = 800
