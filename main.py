@@ -19,7 +19,7 @@ if __name__ == "__main__":
         print("画像を表示します")
         # 画像オブジェクトを直接使用（URLからの再ダウンロードは不要）
         image = response["image"]
-        chat.display_image_on_epaper(image)
+        epd_display.display_image(image)
     else:
         print("テキストを表示します")
         # 回答表示

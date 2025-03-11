@@ -75,5 +75,39 @@ def display_text(text):
 
     print("電子ペーパーに表示しました！")
 
+def display_image(image):
+    """
+    電子ペーパーに画像を表示
+    """
+    # 電子ペーパーのサイズ
+    EPD_WIDTH = 800
+    EPD_HEIGHT = 480
+    
+    # 画像サイズを確認
+    if image.size != (EPD_WIDTH, EPD_HEIGHT):
+        print(f"警告: 画像サイズが正しくありません。現在: {image.size}, 必要: {EPD_WIDTH}x{EPD_HEIGHT}")
+        print("画像を正確なサイズにリサイズします。")
+        try:
+            from PIL.Image import Resampling
+            image = image.resize((EPD_WIDTH, EPD_HEIGHT), Resampling.LANCZOS)
+        except (ImportError, AttributeError):
+            image = image.resize((EPD_WIDTH, EPD_HEIGHT), Image.LANCZOS)
+    
+    epd = epd7in5_V2.EPD()
+    epd.init()
+
+    # 画像をグレースケール変換 & 1bit変換（電子ペーパー用）
+    image = image.convert("L").convert("1")  
+
+    # 画像サイズの最終確認
+    if image.size != (EPD_WIDTH, EPD_HEIGHT):
+        raise ValueError(f"Wrong image dimensions: must be {EPD_WIDTH}x{EPD_HEIGHT}")
+
+    # 画像を電子ペーパーに表示
+    epd.display(epd.getbuffer(image))
+    epd.sleep()
+    
+    print("画像を電子ペーパーに表示しました！")
+
 if __name__ == "__main__":
     display_text("こんにちは、電子ペーパー！")

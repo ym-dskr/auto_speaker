@@ -3,8 +3,9 @@ import openai
 import requests
 from io import BytesIO
 from PIL import Image
-from display import epd7in5_V2  # 電子ペーパー制御用
 from display import epd_display 
+import datetime
+import re
 
 # OpenAI APIキーを環境変数から取得
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -65,37 +66,55 @@ def download_and_resize_image(image_url, target_size=(800, 480)):
     
     return image
 
-def display_image_on_epaper(image):
+def sanitize_filename(text, max_length=50):
     """
-    電子ペーパーに画像を表示
+    ファイル名に使用できない文字を削除し、最大長さを制限
     """
-    # 電子ペーパーのサイズ
-    EPD_WIDTH = 800
-    EPD_HEIGHT = 480
+    # 時間情報パターンを削除
+    # [00:00:00.000 --> 00:00:00.000]
+    sanitized = re.sub(r'\[\d+:\d+:\d+\.\d+ --> \d+:\d+:\d+\.\d+\] ', '', sanitized) 
     
-    # 画像サイズを確認
-    if image.size != (EPD_WIDTH, EPD_HEIGHT):
-        print(f"警告: 画像サイズが正しくありません。現在: {image.size}, 必要: {EPD_WIDTH}x{EPD_HEIGHT}")
-        print("画像を正確なサイズにリサイズします。")
-        try:
-            from PIL.Image import Resampling
-            image = image.resize((EPD_WIDTH, EPD_HEIGHT), Resampling.LANCZOS)
-        except (ImportError, AttributeError):
-            image = image.resize((EPD_WIDTH, EPD_HEIGHT), Image.LANCZOS)
+    # ファイル名に使えない文字を削除
+    sanitized = re.sub(r'[\\/*?:"<>|]', '', sanitized)
     
-    epd = epd7in5_V2.EPD()
-    epd.init()
+    # スペースをアンダースコアに置換
+    sanitized = sanitized.replace(' ', '_')
+    
+    # 先頭と末尾の空白と句読点を削除
+    sanitized = sanitized.strip(' 　.,。、')
+    
+    # 長すぎる場合は切り詰め
+    if len(sanitized) > max_length:
+        sanitized = sanitized[:max_length]
+    
+    # 空文字になった場合のデフォルト名
+    if not sanitized:
+        sanitized = "image"
+        
+    return sanitized
 
-    # 画像をグレースケール変換 & 1bit変換（電子ペーパー用）
-    image = image.convert("L").convert("1")  
-
-    # 画像サイズの最終確認
-    if image.size != (EPD_WIDTH, EPD_HEIGHT):
-        raise ValueError(f"Wrong image dimensions: must be {EPD_WIDTH}x{EPD_HEIGHT}")
-
-    # 画像を電子ペーパーに表示
-    epd.display(epd.getbuffer(image))
-    epd.sleep()
+def save_image(image, prompt):
+    """
+    画像を入力文字列と日付を含むファイル名で保存
+    """
+    # 画像保存用のディレクトリを作成（存在しない場合）
+    images_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "generated_images")
+    os.makedirs(images_dir, exist_ok=True)
+    
+    # ファイル名を作成: 日付_入力テキスト.png
+    now = datetime.datetime.now()
+    date_str = now.strftime("%Y%m%d_%H%M%S")
+    sanitized_prompt = sanitize_filename(prompt)
+    filename = f"{date_str}_{sanitized_prompt}.png"
+    
+    # ファイルパスを作成
+    filepath = os.path.join(images_dir, filename)
+    
+    # 画像を保存
+    image.save(filepath)
+    print(f"画像を保存しました: {filepath}")
+    
+    return filepath
 
 def chat_with_gpt(prompt):
     """
@@ -118,6 +137,8 @@ def handle_request(prompt):
         print("画像生成モード: DALL·E を使用")
         image_url = generate_image(prompt)
         image = download_and_resize_image(image_url)
+        # 画像を保存
+        save_image(image, prompt)
         return {"type": "image", "image": image}
     else:
         print("テキスト応答モード: GPT-4o-mini を使用")
@@ -135,8 +156,8 @@ if __name__ == "__main__":
         
         response = handle_request(user_input)
         if response["type"] == "image":
-            image = download_and_resize_image(response["url"])
-            display_image_on_epaper(image)
+            # epd_display.display_image関数を使用
+            epd_display.display_image(response["image"])
             print("画像を電子ペーパーに表示しました！")
         else:
             epd_display.display_text(response["content"])
