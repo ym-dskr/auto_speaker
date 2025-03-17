@@ -1,7 +1,17 @@
 import sounddevice as sd  # マイク入力の録音に使用
 import numpy as np  # 数値データ処理のためのライブラリ
 import wave  # 音声データをWAVファイルとして保存
-import subprocess  # Whisperの実行を行うためのライブラリ（外部コマンド実行）
+import os  # 環境変数取得用
+import openai  # OpenAI APIを使用するためのライブラリ
+import time  # 処理時間計測用
+
+# APIキーの設定
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError("環境変数 'OPENAI_API_KEY' が設定されていません！")
+
+# OpenAI クライアントを作成
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 # 録音設定
 SAMPLE_RATE = 16000  # 16kHz（Whisper推奨）
@@ -53,16 +63,29 @@ def record_audio(filename="input.wav"):
 
 def transcribe_audio(filename="input.wav"):
     """
-    Whisperを使って音声を日本語でテキストに変換する。
+    OpenAI Whisper APIを使って音声をテキストに変換する。
+    日本語に最適化しており、より高速に動作する。
     """
-    result = subprocess.run([
-        "/home/yutapi/whisper.cpp/build/bin/whisper-cli",  # Whisper CLI 実行ファイル
-        "-m", "/home/yutapi/whisper.cpp/models/ggml-base.bin",  # 日本語対応モデル
-        "-l", "ja",  # 言語を日本語に固定
-        "-f", filename  # 解析する音声ファイル
-    ], capture_output=True, text=True)
-
-    return result.stdout.strip()  # Whisperの出力結果を返す
+    print("文字起こしを開始...")
+    start_time = time.time()  # 処理時間計測開始
+    
+    try:
+        with open(filename, "rb") as audio_file:
+            # OpenAI Whisper APIを呼び出し
+            response = client.audio.transcriptions.create(
+                model="whisper-1",  # 最新のWhisperモデル
+                file=audio_file,
+                language="ja",  # 日本語を指定
+                response_format="text"  # テキスト形式で返す
+            )
+        
+        elapsed_time = time.time() - start_time
+        print(f"文字起こし完了（処理時間: {elapsed_time:.2f}秒）")
+        return response  # API応答のテキストを返す
+    
+    except Exception as e:
+        print(f"文字起こしエラー: {e}")
+        return "音声認識に失敗しました。もう一度お試しください。"
 
 
 if __name__ == "__main__":

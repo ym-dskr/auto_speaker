@@ -70,9 +70,17 @@ def sanitize_filename(text, max_length=50):
     """
     ファイル名に使用できない文字を削除し、最大長さを制限
     """
-    # 時間情報パターンを削除
-    # [00:00:00.000 --> 00:00:00.000]
-    sanitized = re.sub(r'\[\d+:\d+:\d+\.\d+ --> \d+:\d+:\d+\.\d+\] ', '', sanitized) 
+    # 変数を初期化
+    sanitized = text
+    
+    # # 時間情報パターンを削除
+    # # 形式1: [000000.000_--_000005.520]
+    # if re.search(r'\[\d+\.\d+_--_\d+\.\d+\]', sanitized):
+    #     sanitized = re.sub(r'\[\d+\.\d+_--_\d+\.\d+\]', '', sanitized)
+    
+    # # 形式2: [00:00:00.000 --> 00:00:05.560]
+    # if re.search(r'\[\d+:\d+:\d+\.\d+ --> \d+:\d+:\d+\.\d+\]', sanitized):
+    #     sanitized = re.sub(r'\[\d+:\d+:\d+\.\d+ --> \d+:\d+:\d+\.\d+\]', '', sanitized)
     
     # ファイル名に使えない文字を削除
     sanitized = re.sub(r'[\\/*?:"<>|]', '', sanitized)
