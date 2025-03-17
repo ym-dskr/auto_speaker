@@ -13,6 +13,16 @@ if not OPENAI_API_KEY:
 # OpenAI クライアントを作成
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
+# プロジェクトのルートディレクトリを取得
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# 音声ファイル保存用ディレクトリ
+SOUNDS_DIR = os.path.join(PROJECT_ROOT, "sounds")
+# ディレクトリが存在しない場合は作成
+os.makedirs(SOUNDS_DIR, exist_ok=True)
+
+# 録音ファイルのパスを固定
+INPUT_WAV_PATH = os.path.join(SOUNDS_DIR, "input.wav")
+
 # 録音設定
 SAMPLE_RATE = 16000  # 16kHz（Whisper推奨）
 THRESHOLD = 1000  # 音のしきい値（環境に応じて調整） - 無音判定用
@@ -27,11 +37,12 @@ def is_speaking(audio_chunk, threshold=THRESHOLD):
     """
     return np.max(np.abs(audio_chunk)) > threshold
 
-def record_audio(filename="input.wav"):
+def record_audio():
     """
     音声検知から開始し、話し終わって1秒後に終了する録音機能
     - 録音開始には高いしきい値を使用
     - 録音中の無音検知には低いしきい値を使用
+    - 固定パス(sounds/input.wav)に保存
     """
     print("音声入力を待機中... 話しかけてください")
     
@@ -78,30 +89,31 @@ def record_audio(filename="input.wav"):
 
     if not recording:
         print("音声が検出されませんでした。もう一度試してください。")
-        return record_audio(filename)  # 再帰的に再試行
+        return record_audio()  # 再帰的に再試行
     
     # 録音データをWAVファイルに保存
     print("録音データを保存中...")
     audio_data = np.concatenate(recording, axis=0)
-    with wave.open(filename, "wb") as wf:
+    with wave.open(INPUT_WAV_PATH, "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
         wf.setframerate(SAMPLE_RATE)
         wf.writeframes(audio_data.tobytes())
 
-    print(f"録音完了 - 長さ: {len(audio_data)/SAMPLE_RATE:.2f}秒")
-    return filename  # 録音したファイルのパスを返す
+    print(f"録音完了 - 長さ: {len(audio_data)/SAMPLE_RATE:.2f}秒 - 保存先: {INPUT_WAV_PATH}")
+    return INPUT_WAV_PATH  # 録音したファイルのパスを返す
 
-def transcribe_audio(filename="input.wav"):
+def transcribe_audio():
     """
     OpenAI Whisper APIを使って音声をテキストに変換する。
     日本語に最適化しており、より高速に動作する。
+    固定パス(sounds/input.wav)から読み込み
     """
     print("文字起こしを開始...")
     start_time = time.time()  # 処理時間計測開始
     
     try:
-        with open(filename, "rb") as audio_file:
+        with open(INPUT_WAV_PATH, "rb") as audio_file:
             # OpenAI Whisper APIを呼び出し
             response = client.audio.transcriptions.create(
                 model="whisper-1",  # 最新のWhisperモデル
@@ -121,10 +133,10 @@ def transcribe_audio(filename="input.wav"):
 
 if __name__ == "__main__":
     # 録音を実行し、ファイルを取得
-    audio_file = record_audio()
+    record_audio()
 
     # 音声認識を実行し、テキストを取得
-    text = transcribe_audio(audio_file)
+    text = transcribe_audio()
 
     # 認識結果を表示
     print("認識結果:", text)
