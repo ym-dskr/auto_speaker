@@ -21,8 +21,8 @@ if __name__ == "__main__":
         image = response["image"]
         epd_display.display_image(image)
     else:
+        # 音声発話
+        tts_voice.text_to_speech(response["content"])
         print("テキストを表示します")
         # 回答表示
         epd_display.display_text(response["content"])
-        # 音声発話
-        tts_voice.text_to_speech(response["content"])
