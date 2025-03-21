@@ -27,7 +27,7 @@ INPUT_WAV_PATH = os.path.join(SOUNDS_DIR, "input.wav")
 SAMPLE_RATE = 16000  # 16kHz（Whisper推奨）
 THRESHOLD = 1000  # 音のしきい値（環境に応じて調整） - 無音判定用
 THRESHOLD_START_RECORDING = 5000  # 録音開始の音量しきい値 - より大きく設定して偶発的な録音を防止
-SILENCE_DURATION = 1.0  # 無音が続いたら録音終了（秒）
+SILENCE_DURATION = 2.0  # 無音が続いたら録音終了（秒）
 
 def is_speaking(audio_chunk, threshold=THRESHOLD):
     """
@@ -46,6 +46,10 @@ def record_audio():
     """
     print("音声入力を待機中... 話しかけてください")
     
+    # タイムアウト設定
+    start_time = time.time()
+    timeout = 10  # 秒
+
     # 録音前のバッファ（録音には含めない）
     pre_recording = []
     # 実際の録音データ
@@ -57,6 +61,11 @@ def record_audio():
     with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype=np.int16) as stream:
         while True:
             audio_chunk, _ = stream.read(int(SAMPLE_RATE * 0.1))  # 100msごとに音声を取得
+            
+            # タイムアウトチェック
+            if waiting_for_speech and (time.time() - start_time) > timeout:
+                print(f"{timeout}秒経過 - タイムアウト")
+                return None  # タイムアウト時はNoneを返す
             
             if waiting_for_speech:
                 # 音声検知前の状態（まだ録音開始していない）

@@ -36,7 +36,8 @@ def text_to_speech(text, mp3_filename=None, wav_filename=None):
         "Content-Type": "application/json"
     }
     data = {
-        "model": "tts-1",  # 最新のTTSモデル
+        "model": "tts-1-1106",  # 最新のTTSモデル
+        # "model": "gpt-4o-mini-tts",  # 最新のTTSモデル
         "input": text,
         "voice": "nova"  # 話者の選択（alloy, echo, fable, onyx, nova, shimmer）
     }

@@ -5,6 +5,8 @@ from display import epd_display
 from camera import camera_control
 from PIL import Image
 import re
+import subprocess
+import sys
 
 def is_image_request(prompt):
     """
@@ -50,6 +52,11 @@ if __name__ == "__main__":
     try:
         # 音声録音 & Whisper でテキスト化
         audio_file = get_voice.record_audio()
+        if audio_file is None:
+            print("音声入力がタイムアウトしました。")
+            subprocess.Popen(['python', '/home/yutapi/scripts/auto_speaker/ultra_sonic/distance.py'])
+            sys.exit()
+            
         text = get_voice.transcribe_audio()
         print("認識結果:", text)
 
@@ -76,6 +83,8 @@ if __name__ == "__main__":
             tts_voice.text_to_speech(response)
             print("テキストを表示します")
             epd_display.display_text(response)
+        
+        subprocess.Popen(['python', '/home/yutapi/scripts/auto_speaker/ultra_sonic/distance.py'])
                 
     except Exception as e:
         print(f"エラーが発生しました: {str(e)}")
@@ -84,3 +93,5 @@ if __name__ == "__main__":
             epd_display.display_text(f"エラーが発生しました。\n{str(e)}")
         except:
             pass
+        
+        subprocess.Popen(['python', '/home/yutapi/scripts/auto_speaker/ultra_sonic/distance.py'])
