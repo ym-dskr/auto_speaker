@@ -1,4 +1,5 @@
 import openai
+from openai import OpenAI
 import os
 import requests
 import simpleaudio as sa
@@ -30,19 +31,16 @@ def text_to_speech(text, mp3_filename=None, wav_filename=None):
     elif not os.path.isabs(wav_filename):  # 相対パスが指定された場合
         wav_filename = os.path.join(SOUNDS_DIR, wav_filename)
     
-    url = "https://api.openai.com/v1/audio/speech"
-    headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "tts-1-1106",  # 最新のTTSモデル
-        # "model": "gpt-4o-mini-tts",  # 最新のTTSモデル
-        "input": text,
-        "voice": "nova"  # 話者の選択（alloy, echo, fable, onyx, nova, shimmer）
-    }
-    response = requests.post(url, headers=headers, json=data)
-
+    client = OpenAI()
+    
+    response = client.audio.speech.create(
+        model="gpt-4o-mini-tts", # 最新のTTSモデル
+        input=text,
+        voice="nova",
+        instructions="Speak in a cheerful and positive tone like Japanese.",
+        response_format="mp3",
+    )
+    
     # MP3 ファイルに保存
     with open(mp3_filename, "wb") as f:
         f.write(response.content)

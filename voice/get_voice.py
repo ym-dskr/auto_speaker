@@ -27,7 +27,7 @@ INPUT_WAV_PATH = os.path.join(SOUNDS_DIR, "input.wav")
 SAMPLE_RATE = 16000  # 16kHz（Whisper推奨）
 THRESHOLD = 1000  # 音のしきい値（環境に応じて調整） - 無音判定用
 THRESHOLD_START_RECORDING = 5000  # 録音開始の音量しきい値 - より大きく設定して偶発的な録音を防止
-SILENCE_DURATION = 2.0  # 無音が続いたら録音終了（秒）
+SILENCE_DURATION = 1.0  # 無音が続いたら録音終了（秒）
 
 def is_speaking(audio_chunk, threshold=THRESHOLD):
     """
