@@ -48,7 +48,7 @@ def record_audio():
     
     # タイムアウト設定
     start_time = time.time()
-    timeout = 10  # 秒
+    timeout = 15  # 秒
 
     # 録音前のバッファ（録音には含めない）
     pre_recording = []

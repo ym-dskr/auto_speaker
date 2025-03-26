@@ -1,6 +1,11 @@
 import RPi.GPIO as GPIO
 import time
 import sys
+import numpy as np
+import subprocess
+import os
+import datetime
+
 
 trig_pin = 15                           # GPIO 15
 echo_pin = 14                           # GPIO 14
@@ -33,11 +38,15 @@ while True: # 繰り返し処理
         distance = float('{:.1f}'.format(get_distance()))  # 小数点1までまるめ
         print("Distance: " + str(distance) + "cm")       # 表示
         if distance <= 20:
-            import subprocess
-            subprocess.Popen(['python', '/home/yutapi/scripts/auto_speaker/main.py'])
+            print("Distance <= 20cm, executing main.py")
+            subprocess.Popen(['/home/yutapi/myenv/bin/python3', '/home/yutapi/scripts/auto_speaker/main.py'])
             sys.exit()
         time.sleep(1)                               # 1秒まつ
 
+    except Exception as e:
+        print("Exception: " + str(e))
+        GPIO.cleanup()
+        sys.exit()
     except KeyboardInterrupt:                       # Ctrl + C押されたたら
         GPIO.cleanup()                              # GPIOお片付け
         sys.exit()                                  # プログラム終了

@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+import subprocess
 from voice import get_voice
 from api import chat, generate_image, chat_with_gpt, download_and_resize_image, save_image
 from api import tts_voice
@@ -5,8 +8,11 @@ from display import epd_display
 from camera import camera_control
 from PIL import Image
 import re
-import subprocess
 import sys
+import simpleaudio as sa
+
+load_dotenv()
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 def is_image_request(prompt):
     """
@@ -49,12 +55,22 @@ def check_for_camera_command(text):
     return False
 
 if __name__ == "__main__":
+    from api import tts_voice
+    
+    # 音声再生
+    wave_obj = sa.WaveObject.from_wave_file("/home/yutapi/scripts/auto_speaker/sounds/start.wav")
+    wave_obj.play().wait_done()
+    
     try:
         # 音声録音 & Whisper でテキスト化
         audio_file = get_voice.record_audio()
         if audio_file is None:
             print("音声入力がタイムアウトしました。")
-            subprocess.Popen(['python', '/home/yutapi/scripts/auto_speaker/ultra_sonic/distance.py'])
+            # tts_voice.text_to_speech("何もないんかい、また来てな！")
+            wave_obj = sa.WaveObject.from_wave_file("/home/yutapi/scripts/auto_speaker/sounds/no_request.wav")
+            wave_obj.play().wait_done()
+            
+            subprocess.Popen(['/home/yutapi/myenv/bin/python3', '/home/yutapi/scripts/auto_speaker/ultra_sonic/distance.py'])
             sys.exit()
             
         text = get_voice.transcribe_audio()
@@ -84,7 +100,7 @@ if __name__ == "__main__":
             print("テキストを表示します")
             epd_display.display_text(response)
         
-        subprocess.Popen(['python', '/home/yutapi/scripts/auto_speaker/ultra_sonic/distance.py'])
+        subprocess.Popen(['/home/yutapi/myenv/bin/python3', '/home/yutapi/scripts/auto_speaker/ultra_sonic/distance.py'])
                 
     except Exception as e:
         print(f"エラーが発生しました: {str(e)}")
