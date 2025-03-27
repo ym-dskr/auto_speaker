@@ -55,11 +55,15 @@ def check_for_camera_command(text):
     return False
 
 if __name__ == "__main__":
-    from api import tts_voice
+    from api import tts_voice, chat_with_gpt # chat_with_gpt をインポート
+    from api.chat import SYSTEM_PROMPT, summarize_text_for_display # SYSTEM_PROMPT, summarize_text_for_display を api.chat からインポート
     
     # 音声再生
     wave_obj = sa.WaveObject.from_wave_file("/home/yutapi/scripts/auto_speaker/sounds/start.wav")
     wave_obj.play().wait_done()
+    
+    # 会話履歴を初期化 (システムプロンプトを含む)
+    conversation_history = [{"role": "system", "content": SYSTEM_PROMPT}]
     
     try:
         # 音声録音 & Whisper でテキスト化
@@ -95,10 +99,42 @@ if __name__ == "__main__":
         else:
             # 通常の会話処理（テキスト応答）
             print("テキスト応答モード: GPT-4o-mini を使用")
-            response = chat_with_gpt(text)
+            response, is_question, conversation_history = chat_with_gpt(text, conversation_history) # 履歴を渡し、更新された履歴を受け取る
             tts_voice.text_to_speech(response)
-            print("テキストを表示します")
-            epd_display.display_text(response)
+            
+            if not is_question:
+                print("応答を要約して表示します...")
+                summary = summarize_text_for_display(response) # 応答を要約
+                print("要約:", summary)
+                epd_display.display_text(summary) # 要約を表示
+
+            # GPTの応答が質問の場合、会話を継続
+            while is_question:
+                print("GPTが質問をしました。会話を継続します。")
+                # 会話継続を知らせる音声を再生
+                wave_obj = sa.WaveObject.from_wave_file("/home/yutapi/scripts/auto_speaker/sounds/continue.wav")
+                wave_obj.play().wait_done()
+                # 音声録音 & Whisper でテキスト化
+                audio_file = get_voice.record_audio()
+                if audio_file is None:
+                    print("音声入力がタイムアウトしました。最後の応答を要約して表示します。")
+                    wave_obj = sa.WaveObject.from_wave_file("/home/yutapi/scripts/auto_speaker/sounds/no_request.wav")
+                    wave_obj.play().wait_done()
+                    # タイムアウト前の最後の応答 (response) を要約して表示
+                    summary = summarize_text_for_display(response) 
+                    print("要約:", summary)
+                    epd_display.display_text(summary)
+                    break
+                text = get_voice.transcribe_audio()
+                print("認識結果:", text)
+                response, is_question, conversation_history = chat_with_gpt(text, conversation_history) # 履歴を渡し、更新された履歴を受け取る
+                tts_voice.text_to_speech(response)
+                
+                if not is_question:
+                    print("応答を要約して表示します...")
+                    summary = summarize_text_for_display(response) # 応答を要約
+                    print("要約:", summary)
+                    epd_display.display_text(summary) # 要約を表示
         
         subprocess.Popen(['/home/yutapi/myenv/bin/python3', '/home/yutapi/scripts/auto_speaker/ultra_sonic/distance.py'])
                 

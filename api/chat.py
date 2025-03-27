@@ -20,6 +20,9 @@ client = openai.OpenAI(api_key=OPENAI_API_KEY)
 SYSTEM_PROMPT = """
     # 知らない単語の組み合わせや熟語が出た場合は、話者に聞き返してください。
     # あなたは大阪弁の博識で元気なアドバイザーです。
+    # 全ての分野に精通しています。
+    # ユーザの子供であるたけまさくん（男）、めいちゃん（女）の2人の子供に話しかけることがあります。
+    # ユーザの子供であるさわちゃん（女）もいますが、0歳でまだ小さいです。
     # 簡潔かつわかりやすく、具体的な回答をしてください。
     # !?以外の記号・絵文字は使用しません。
     """
@@ -121,16 +124,73 @@ def save_image(image, prompt):
     return filepath
 
 
-def chat_with_gpt(prompt):
+def chat_with_gpt(prompt, history):
     """
-    OpenAI API にテキストを送信し、GPT-4oの応答を取得
+    OpenAI API にテキストを送信し、GPT-4oの応答を取得し、その応答が質問かどうかを判定する
+    会話履歴を考慮する
     """
-    response = client.chat.completions.create(
+    # 1. 会話履歴にユーザーのプロンプトを追加
+    current_history = history + [{"role": "user", "content": prompt}]
+
+    # 2. ユーザーのプロンプトに対する応答を取得 (会話履歴全体を渡す)
+    response_obj = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "system", "content": SYSTEM_PROMPT},
-                  {"role": "user", "content": prompt}],
+        messages=current_history
     )
-    return response.choices[0].message.content  # GPT-4o の応答を取得
+    gpt_response_content = response_obj.choices[0].message.content
+
+    # 3. 会話履歴にGPTの応答を追加
+    updated_history = current_history + [{"role": "assistant", "content": gpt_response_content}]
+
+    # 4. 取得した応答が質問かどうかをGPTに判断させる
+    messages_for_check = [
+        {"role": "system", "content": "あなたはテキストがユーザーに追加の応答を求める質問であるかどうかを判断するAIです。「はい」か「いいえ」のみで答えてください。"},
+        {"role": "user", "content": f"以下のテキストはユーザーに追加の応答を求める質問ですか？\n\n{gpt_response_content}"}
+    ]
+    check_response_obj = client.chat.completions.create(
+        model="gpt-4o-mini", # より高速なモデルでも良いかもしれない
+        messages=messages_for_check,
+        max_tokens=5 # 「はい」か「いいえ」だけを期待
+    )
+    check_result = check_response_obj.choices[0].message.content.strip()
+
+    # 質問かどうかを判定
+    is_question = "はい" in check_result
+
+    return gpt_response_content, is_question, updated_history
+
+def summarize_text_for_display(text, max_chars=700):
+    """
+    与えられたテキストを電子ペーパー表示用に指定文字数以内で要約する
+    """
+    summarize_prompt = f"""以下のテキストを、最も重要な要点のみを残して{max_chars}文字以内で簡潔に大阪弁で要約してください。
+    
+
+                        テキスト：{text}
+
+                        要約：
+                        """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini", # 要約タスクにはこれで十分な場合が多い
+            messages=[
+                {"role": "system", "content": "あなたはテキストを要約するAIです。指定された文字数制限を厳守してください。"},
+                {"role": "user", "content": summarize_prompt}
+            ],
+            max_tokens=int(max_chars * 1.5) # 文字数制限より少し多めにトークンを確保
+        )
+        summary = response.choices[0].message.content.strip()
+        
+        # 念のため文字数チェックと切り詰め
+        if len(summary) > max_chars:
+            summary = summary[:max_chars]
+            
+        return summary
+    except Exception as e:
+        print(f"要約中にエラーが発生しました: {e}")
+        # エラー時は元のテキストを切り詰めて返すなどのフォールバックも検討可能
+        return text[:max_chars]
 
 
 if __name__ == "__main__":
