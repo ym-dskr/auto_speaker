@@ -38,9 +38,10 @@ while True: # 繰り返し処理
         distance = float('{:.1f}'.format(get_distance()))  # 小数点1までまるめ
         print("Distance: " + str(distance) + "cm")       # 表示
         if distance <= 20:
-            print("Distance <= 20cm, executing main.py")
-            subprocess.Popen(['/home/yutapi/myenv/bin/python3', '/home/yutapi/scripts/auto_speaker/main.py'])
-            sys.exit()
+            print("Distance <= 20cm, exiting to let systemd run main.py")
+            # subprocess.Popen は systemd に任せるため削除
+            GPIO.cleanup() # GPIOピンを解放
+            sys.exit() # 正常終了 (exit code 0)
         time.sleep(1)                               # 1秒まつ
 
     except Exception as e:
