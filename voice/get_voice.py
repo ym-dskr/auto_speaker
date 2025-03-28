@@ -4,6 +4,7 @@ import wave  # 音声データをWAVファイルとして保存
 import os  # 環境変数取得用
 import openai  # OpenAI APIを使用するためのライブラリ
 import time  # 処理時間計測用
+import simpleaudio as sa
 
 # APIキーの設定
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -100,6 +101,10 @@ def record_audio():
         print("音声が検出されませんでした。もう一度試してください。")
         return record_audio()  # 再帰的に再試行
     
+    wave_obj = sa.WaveObject.from_wave_file(
+        "/home/yutapi/scripts/auto_speaker/sounds/beep_converted.wav"
+        )
+    wave_obj.play().wait_done()
     # 録音データをWAVファイルに保存
     print("録音データを保存中...")
     audio_data = np.concatenate(recording, axis=0)
