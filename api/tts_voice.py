@@ -37,7 +37,7 @@ def text_to_speech(text, mp3_filename=None, wav_filename=None):
         model="gpt-4o-mini-tts", # 最新のTTSモデル
         input=text,
         voice="nova",
-        instructions="Speak in a cheerful and positive tone like Japanese.",
+        instructions="日本人の関西人のような訛りを入れて、はきはきと元気に話してください。",
         response_format="mp3",
     )
     
