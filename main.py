@@ -9,7 +9,7 @@ from camera import camera_control
 from PIL import Image
 import re
 import sys
-import simpleaudio as sa
+import simpleaudio as sa # simpleaudio は不要になる可能性あり
 
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -55,13 +55,27 @@ def check_for_camera_command(text):
     return False
 
 if __name__ == "__main__":
-    from api import tts_voice, chat_with_gpt # chat_with_gpt をインポート
-    from api.chat import SYSTEM_PROMPT, summarize_text_for_display # SYSTEM_PROMPT, summarize_text_for_display を api.chat からインポート
+    from api import tts_voice, chat_with_gpt
+    from api.chat import SYSTEM_PROMPT, summarize_text_for_display, generate_greeting, generate_farewell # generate_farewell をインポート
     
-    # 音声再生
-    wave_obj = sa.WaveObject.from_wave_file("/home/yutapi/scripts/auto_speaker/sounds/start.wav")
-    wave_obj.play().wait_done()
-    
+    # GPTによる挨拶を生成して再生
+    try:
+        greeting_text = generate_greeting()
+        print(f"生成された挨拶: {greeting_text}")
+        tts_voice.text_to_speech(greeting_text)
+        # 会話継続を知らせる音声を再生
+        wave_obj = sa.WaveObject.from_wave_file("/home/yutapi/scripts/auto_speaker/sounds/continue.wav")
+        wave_obj.play().wait_done()
+    except Exception as e:
+        print(f"挨拶の生成または再生中にエラーが発生しました: {e}")
+        # エラー時もデフォルトの音声を再生するなど、フォールバック処理を追加しても良い
+        try:
+            # デフォルトの音声ファイルがあれば再生
+            wave_obj = sa.WaveObject.from_wave_file("/home/yutapi/scripts/auto_speaker/sounds/start.wav")
+            wave_obj.play().wait_done()
+        except Exception as audio_e:
+            print(f"デフォルト音声の再生に失敗しました: {audio_e}")
+
     # 会話履歴を初期化 (システムプロンプトを含む)
     conversation_history = [{"role": "system", "content": SYSTEM_PROMPT}]
     
@@ -70,9 +84,9 @@ if __name__ == "__main__":
         audio_file = get_voice.record_audio()
         if audio_file is None:
             print("音声入力がタイムアウトしました。")
-            # tts_voice.text_to_speech("何もないんかい、また来てな！")
-            wave_obj = sa.WaveObject.from_wave_file("/home/yutapi/scripts/auto_speaker/sounds/no_request.wav")
-            wave_obj.play().wait_done()
+            farewell_text = generate_farewell() # 別れの挨拶を生成
+            print(f"生成された別れの挨拶: {farewell_text}")
+            tts_voice.text_to_speech(farewell_text) # 音声合成して再生
             
             subprocess.Popen(['/home/yutapi/myenv/bin/python3', '/home/yutapi/scripts/auto_speaker/ultra_sonic/distance.py'])
             sys.exit()
@@ -118,8 +132,9 @@ if __name__ == "__main__":
                 audio_file = get_voice.record_audio()
                 if audio_file is None:
                     print("音声入力がタイムアウトしました。最後の応答を要約して表示します。")
-                    wave_obj = sa.WaveObject.from_wave_file("/home/yutapi/scripts/auto_speaker/sounds/no_request.wav")
-                    wave_obj.play().wait_done()
+                    farewell_text = generate_farewell() # 別れの挨拶を生成
+                    print(f"生成された別れの挨拶: {farewell_text}")
+                    tts_voice.text_to_speech(farewell_text) # 音声合成して再生
                     # タイムアウト前の最後の応答 (response) を要約して表示
                     summary = summarize_text_for_display(response) 
                     print("要約:", summary)

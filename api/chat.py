@@ -193,5 +193,65 @@ def summarize_text_for_display(text, max_chars=700):
         return text[:max_chars]
 
 
+def generate_greeting():
+    """
+    起動時の挨拶をGPTに生成させる
+    """
+    greeting_prompt = """
+    これからユーザーが話しかけてきます。
+    あなたのキャラクター設定（SYSTEM_PROMPT）に従って、元気の良い大阪弁で、何か気の利いた一言挨拶を生成してください。
+    短く簡潔にお願いします。
+    例：「まいど！」「なんか用か？」「元気にしてたか？」
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT}, # 既存のシステムプロンプトを活用
+                {"role": "user", "content": greeting_prompt}
+            ],
+            max_tokens=50 # 短い挨拶を期待
+        )
+        greeting = response.choices[0].message.content.strip()
+        # 念のため、空でないか確認
+        if not greeting:
+            greeting = "まいど！なんか用か？" # デフォルトの挨拶
+        return greeting
+    except Exception as e:
+        print(f"挨拶生成中にエラーが発生しました: {e}")
+        return "まいど！なんか用か？" # エラー時のデフォルト挨拶
+
+def generate_farewell():
+    """
+    終了時の応答をGPTに生成させる
+    """
+    farewell_prompt = """
+    ユーザーがもう話すことがないようです。
+    あなたのキャラクター設定（SYSTEM_PROMPT）に従って、元気の良い大阪弁で、何か気の利いた別れの挨拶を生成してください。
+    短く簡潔にお願いします。
+    例：「ほな、またな！」「さいなら！」「なんかあったらまた呼んでや！」
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT}, # 既存のシステムプロンプトを活用
+                {"role": "user", "content": farewell_prompt}
+            ],
+            max_tokens=50 # 短い挨拶を期待
+        )
+        farewell = response.choices[0].message.content.strip()
+        # 念のため、空でないか確認
+        if not farewell:
+            farewell = "ほな、またな！" # デフォルトの挨拶
+        return farewell
+    except Exception as e:
+        print(f"別れの挨拶生成中にエラーが発生しました: {e}")
+        return "ほな、またな！" # エラー時のデフォルト挨拶
+
+
 if __name__ == "__main__":
-    None
+    # テスト用: 挨拶を生成して表示
+    # print(generate_greeting())
+    # print(generate_farewell()) # テスト用に追加
+    pass # mainブロックは特に何もしないように変更
