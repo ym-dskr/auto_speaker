@@ -57,6 +57,11 @@ def check_for_camera_command(text):
 
 
 if __name__ == "__main__":
+    
+    wave_obj = sa.WaveObject.from_wave_file(
+            "/home/yutapi/scripts/auto_speaker/sounds/beep_converted.wav"
+            )
+    wave_obj.play().wait_done()
     # --- メイン処理全体を try...finally で囲む ---
     try:
         from api import tts_voice, chat_with_gpt
@@ -66,6 +71,8 @@ if __name__ == "__main__":
             generate_greeting,
             generate_farewell,
         )  # generate_farewell をインポート
+        
+        
         # GPTによる挨拶を生成して再生
         try:
             greeting_text = generate_greeting()
@@ -100,6 +107,14 @@ if __name__ == "__main__":
                 # distance.py の呼び出しは systemd に任せるため削除
                 sys.exit()  # main.py を終了させることで systemd が distance.py を再実行する
             text = get_voice.transcribe_audio()
+            # 雑音やほぼ無音と判断された場合（Noneが返された場合）
+            if text is None:
+                print("雑音やほぼ無音と判断されました。会話を終了します。")
+                farewell_text = generate_farewell()  # 別れの挨拶を生成
+                print(f"生成された別れの挨拶: {farewell_text}")
+                tts_voice.text_to_speech(farewell_text)  # 音声合成して再生
+                sys.exit()  # main.py を終了させることで systemd が distance.py を再実行する
+            
             print("認識結果:", text)
             # 「はいチーズ」系のコマンドかどうかチェック
             if check_for_camera_command(text):

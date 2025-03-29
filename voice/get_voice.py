@@ -27,7 +27,7 @@ INPUT_WAV_PATH = os.path.join(SOUNDS_DIR, "input.wav")
 # 録音設定
 SAMPLE_RATE = 16000  # 16kHz（Whisper推奨）
 THRESHOLD = 1000  # 音のしきい値（環境に応じて調整） - 無音判定用
-THRESHOLD_START_RECORDING = 5000  # 録音開始の音量しきい値 - より大きく設定して偶発的な録音を防止
+THRESHOLD_START_RECORDING = 7000  # 録音開始の音量しきい値 - より大きく設定して偶発的な録音を防止
 SILENCE_DURATION = 1.0  # 無音が続いたら録音終了（秒）
 
 def is_speaking(audio_chunk, threshold=THRESHOLD):
@@ -122,6 +122,7 @@ def transcribe_audio():
     OpenAI Whisper APIを使って音声をテキストに変換する。
     日本語に最適化しており、より高速に動作する。
     固定パス(sounds/input.wav)から読み込み
+    雑音やほぼ無音と判断される場合はNoneを返す
     """
     print("文字起こしを開始...")
     start_time = time.time()  # 処理時間計測開始
@@ -138,7 +139,20 @@ def transcribe_audio():
         
         elapsed_time = time.time() - start_time
         print(f"文字起こし完了（処理時間: {elapsed_time:.2f}秒）")
-        return response  # API応答のテキストを返す
+        
+        # 雑音やほぼ無音かどうかを判断
+        text = response.strip()
+        print(f"認識されたテキスト: '{text}'")
+        
+        # 雑音やほぼ無音と判断する条件（より柔軟な判定）
+        noise_patterns = ["無音", "雑音", "ノイズ", "...", "。。。", "・・・", "…", "タッピング", "タップ"]
+        
+        # 空文字列、または特定のパターンが含まれる場合
+        if not text or text == "." or any(pattern in text for pattern in noise_patterns):
+            print("雑音やほぼ無音と判断されました。会話を終了します。")
+            return None
+        
+        return text  # API応答のテキストを返す
     
     except Exception as e:
         print(f"文字起こしエラー: {e}")

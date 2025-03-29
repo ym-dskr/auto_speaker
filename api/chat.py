@@ -6,9 +6,20 @@ from PIL import Image
 from display import epd_display
 import datetime
 import re
+from tavily import TavilyClient
+from dotenv import load_dotenv
+
+# .envファイルから環境変数を読み込む
+load_dotenv()
 
 # OpenAI APIキーを環境変数から取得
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+
+if not TAVILY_API_KEY:
+    raise ValueError("環境変数 'TAVILY_API_KEY' が設定されていません！")
+    
+tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
 
 if not OPENAI_API_KEY:
     raise ValueError("環境変数 'OPENAI_API_KEY' が設定されていません！")
@@ -71,7 +82,7 @@ def download_and_resize_image(image_url, target_size=(800, 480)):
     return image
 
 
-def sanitize_filename(text, max_length=50):
+def sanitize_filename(text, max_length=500):
     """
     ファイル名に使用できない文字を削除し、最大長さを制限
     """
@@ -129,10 +140,47 @@ def chat_with_gpt(prompt, history):
     OpenAI API にテキストを送信し、GPT-4oの応答を取得し、その応答が質問かどうかを判定する
     会話履歴を考慮する
     """
-    # 1. 会話履歴にユーザーのプロンプトを追加
-    current_history = history + [{"role": "user", "content": prompt}]
+    # 1. プロンプトが最新情報を求めているかどうかを判断
+    needs_latest_info = check_if_needs_latest_info(prompt)
+    
+    # 最新情報が必要な場合のみTavily APIを使用
+    if needs_latest_info:
+        # Tavily APIを使用して、プロンプトに関連する最新情報を検索（include_answer=Trueを追加）
+        search_results = tavily_client.search(prompt, history=history, include_answer=True)
 
-    # 2. ユーザーのプロンプトに対する応答を取得 (会話履歴全体を渡す)
+        # answerからtitles_textを作成
+        titles_text = ""
+        if isinstance(search_results, dict) and 'answer' in search_results and search_results['answer']:
+            titles_text = search_results['answer']
+        else:
+            # フォールバック: answerがない場合は従来通りresultsから作成
+            titles = []
+            if isinstance(search_results, dict) and 'results' in search_results:
+                for result in search_results['results']:
+                    if 'content' in result:
+                        titles.append(result['content'])
+            
+            # タイトルのリストを文字列に変換
+            titles_text = "\n- ".join(titles)
+            if titles:
+                titles_text = "- " + titles_text
+
+        # 検索結果をプロンプトに追加
+        prompt_with_context = f"{prompt}\n\n以下の関連情報を参考にして,なるべく要約せず具体的な回答をしてください:\n{titles_text}\n\n詳細情報:\n{search_results}"
+        print(f"最新情報が必要と判断しました。検索結果タイトル:\n{titles_text}")
+    else:
+        # 最新情報が不要な場合は元のプロンプトをそのまま使用
+        prompt_with_context = prompt
+        print("最新情報は不要と判断しました。Tavily APIは使用しません。")
+
+    # 3. 会話履歴にユーザーのプロンプトを追加
+    # システムプロンプトが含まれていない場合は追加する
+    if not history or history[0].get("role") != "system":
+        current_history = [{"role": "system", "content": SYSTEM_PROMPT}] + history + [{"role": "user", "content": prompt_with_context}]
+    else:
+        current_history = history + [{"role": "user", "content": prompt_with_context}]
+
+    # 4. ユーザーのプロンプトに対する応答を取得 (会話履歴全体を渡す)
     response_obj = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=current_history
@@ -159,7 +207,7 @@ def chat_with_gpt(prompt, history):
 
     return gpt_response_content, is_question, updated_history
 
-def summarize_text_for_display(text, max_chars=700):
+def summarize_text_for_display(text, max_chars=500):
     """
     与えられたテキストを電子ペーパー表示用に指定文字数以内で要約する
     """
@@ -247,7 +295,52 @@ def generate_farewell():
         return farewell
     except Exception as e:
         print(f"別れの挨拶生成中にエラーが発生しました: {e}")
-        return "ほな、またな！" # エラー時のデフォルト挨拶
+        
+        
+def check_if_needs_latest_info(prompt):
+    """
+    ユーザーのプロンプトが最新情報を求めているかどうかを判断する
+    """
+    check_prompt = f"""
+    以下のユーザーの質問やプロンプトが、最新のニュース、時事問題、最近の出来事、現在の状況など、
+    最新の情報を必要としているかどうかを判断してください。
+    >
+    例えば、以下のようなプロンプトは最新情報が必要です：
+    - 「今日のニュースは？」
+    - 「最近の株価はどうなっている？」
+    - 「現在の天気はどう？」
+    - 「今年のオリンピックの結果は？」
+    - 「最新のスマホの特徴は？」
+    
+    一方、以下のようなプロンプトは一般的な知識で回答可能で、最新情報は不要です：
+    - 「水の沸点は？」
+    - 「犬の種類を教えて」
+    - 「数学の問題を解いて」
+    - 「昔話を聞かせて」
+    - 「歴史上の人物について教えて」
+    
+    ユーザープロンプト: {prompt}
+    
+    このプロンプトは最新情報を必要としていますか？「はい」か「いいえ」だけで答えてください。
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "あなたはユーザーの質問が最新情報を必要としているかどうかを判断するAIです。"},
+                {"role": "user", "content": check_prompt}
+            ],
+            max_tokens=5  # 「はい」か「いいえ」だけを期待
+        )
+        result = response.choices[0].message.content.strip().lower()
+        
+        # 「はい」が含まれていれば最新情報が必要と判断
+        return "はい" in result or "yes" in result
+    except Exception as e:
+        print(f"最新情報の必要性判断中にエラーが発生しました: {e}")
+        # エラーの場合は安全側に倒して最新情報を取得する
+        return True
 
 
 if __name__ == "__main__":
