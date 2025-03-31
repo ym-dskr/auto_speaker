@@ -11,6 +11,14 @@ import re
 import sys
 import simpleaudio as sa  # simpleaudio は不要になる可能性あり
 from display import epdconfig  # EPDリソース解放のためにインポート
+from api import tts_voice, chat_with_gpt
+from api.chat import (
+    SYSTEM_PROMPT,
+    summarize_text_for_display,
+    generate_greeting,
+    generate_farewell,
+)  # generate_farewell をインポート
+
 
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -64,36 +72,22 @@ if __name__ == "__main__":
     wave_obj.play().wait_done()
     # --- メイン処理全体を try...finally で囲む ---
     try:
-        from api import tts_voice, chat_with_gpt
-        from api.chat import (
-            SYSTEM_PROMPT,
-            summarize_text_for_display,
-            generate_greeting,
-            generate_farewell,
-        )  # generate_farewell をインポート
-        
-        
-        # GPTによる挨拶を生成して再生
+        # --- 起動時の挨拶処理を変更 ---
+        # 起動音を再生 (start.wav があればそれを優先、なければ beep_converted.wav)
+        start_sound_path = "/home/yutapi/scripts/auto_speaker/sounds/start.wav"
+        beep_sound_path = "/home/yutapi/scripts/auto_speaker/sounds/beep_converted.wav"
         try:
-            greeting_text = generate_greeting()
-            print(f"生成された挨拶: {greeting_text}")
-            tts_voice.text_to_speech(greeting_text)
-            # 会話継続を知らせる音声を再生
-            wave_obj = sa.WaveObject.from_wave_file(
-                "/home/yutapi/scripts/auto_speaker/sounds/continue.wav"
-            )
+            if os.path.exists(start_sound_path):
+                wave_obj = sa.WaveObject.from_wave_file(start_sound_path)
+                print("起動音 (start.wav) を再生します。")
+            else:
+                wave_obj = sa.WaveObject.from_wave_file(beep_sound_path)
+                print("起動音 (beep_converted.wav) を再生します。")
             wave_obj.play().wait_done()
         except Exception as e:
-            print(f"挨拶の生成または再生中にエラーが発生しました: {e}")
-            # エラー時もデフォルトの音声を再生するなど、フォールバック処理を追加しても良い
-            try:
-                # デフォルトの音声ファイルがあれば再生
-                wave_obj = sa.WaveObject.from_wave_file(
-                    "/home/yutapi/scripts/auto_speaker/sounds/start.wav"
-                )
-                wave_obj.play().wait_done()
-            except Exception as audio_e:
-                print(f"デフォルト音声の再生に失敗しました: {audio_e}")
+            print(f"起動音の再生中にエラーが発生しました: {e}")
+        # --- ここまで変更 ---
+
         # 会話履歴を初期化 (システムプロンプトを含む)
         conversation_history = [{"role": "system", "content": SYSTEM_PROMPT}]
         try:

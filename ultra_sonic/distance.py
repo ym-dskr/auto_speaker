@@ -36,13 +36,13 @@ def get_distance():
 while True: # 繰り返し処理
     try:
         distance = float('{:.1f}'.format(get_distance()))  # 小数点1までまるめ
-        print("Distance: " + str(distance) + "cm")       # 表示
+        # print("Distance: " + str(distance) + "cm")       # 表示
         if distance <= 20:
             print("Distance <= 20cm, exiting to let systemd run main.py")
             # subprocess.Popen は systemd に任せるため削除
             GPIO.cleanup() # GPIOピンを解放
             sys.exit() # 正常終了 (exit code 0)
-        time.sleep(1)                               # 1秒まつ
+        time.sleep(1.0)                               # 1.0秒まつ
 
     except Exception as e:
         print("Exception: " + str(e))

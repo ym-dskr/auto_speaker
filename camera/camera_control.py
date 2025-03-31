@@ -2,7 +2,7 @@ import os
 import datetime
 from picamera2 import Picamera2
 import time
-from PIL import Image
+from PIL import Image, ImageEnhance # ImageEnhance をインポート
 import numpy as np
 import sys
 sys.path.append('/home/yutapi/scripts')  # プロジェクトのルートディレクトリをパスに追加
@@ -120,6 +120,11 @@ def capture_photo(filename=None):
     
     # numpy arrayからPIL Imageへ変換
     img = Image.fromarray(array)
+
+    # 明るさを調整 (例: 1.5倍)
+    enhancer = ImageEnhance.Brightness(img)
+    img = enhancer.enhance(1.5)
+    print("画像の明るさを調整しました。")
     
     # ファイル名が指定されていない場合は現在日時を使用
     if filename is None:
@@ -159,4 +164,4 @@ if __name__ == "__main__":
     
     # 電子ペーパー用にリサイズ
     img_epaper = resize_for_epaper(img)
-    print(f"リサイズ後サイズ: {img_epaper.size}") 
+    print(f"リサイズ後サイズ: {img_epaper.size}")
