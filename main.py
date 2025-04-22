@@ -99,8 +99,11 @@ if __name__ == "__main__":
             # 起動音を再生 (start.wav があればそれを優先、なければ beep_converted.wav)
             try:
                 if os.path.exists(start_sound_path):
-                    wave_obj = sa.WaveObject.from_wave_file(start_sound_path)
-                    print("起動音 (start.wav) を再生します。")
+                    greeting_text = generate_greeting()
+                    print(f"生成された開始の挨拶: {greeting_text}")
+                    tts_voice.text_to_speech(greeting_text) 
+                    # wave_obj = sa.WaveObject.from_wave_file(start_sound_path)
+                    # print("起動音 (start.wav) を再生します。")
                 else:
                     wave_obj = sa.WaveObject.from_wave_file(beep_sound_path)
                     print("起動音 (beep_converted.wav) を再生します。")
