@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <title>質問応答システム</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        #chatbox { width: 100%; max-width: 600px; margin: auto; }
+        #messages { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
+        #messages div { margin-bottom: 5px; }
+        #messages .user { text-align: right; color: blue; }
+        #messages .bot { text-align: left; color: green; }
+        #input-area { display: flex; }
+        #question { flex-grow: 1; padding: 8px; }
+        button { padding: 8px 15px; }
+    </style>
+</head>
+<body>
+    <div id="chatbox">
+        <h1>質問を入力してください</h1>
+        <div id="messages"></div>
+        <div id="input-area">
+            <input type="text" id="question" placeholder="ここに質問を入力...">
+            <button onclick="askQuestion()">送信</button>
+        </div>
+    </div>
+
+    <script>
+        async function askQuestion() {
+            const questionInput = document.getElementById('question');
+            const question = questionInput.value.trim();
+            const messagesDiv = document.getElementById('messages');
+
+            if (!question) return;
+
+            // Display user message
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'user';
+            userMessageDiv.textContent = `あなた: ${question}`;
+            messagesDiv.appendChild(userMessageDiv);
+
+            // Clear input
+            questionInput.value = '';
+
+            // Send question to server and get response
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: question }),
+                });
+                const data = await response.json();
+
+                // Display bot response
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.className = 'bot';
+                botMessageDiv.textContent = `ボット: ${data.answer}`;
+                messagesDiv.appendChild(botMessageDiv);
+
+                // Scroll to bottom
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            } catch (error) {
+                console.error('Error:', error);
+                const errorMessageDiv = document.createElement('div');
+                errorMessageDiv.className = 'bot';
+                errorMessageDiv.textContent = 'ボット: エラーが発生しました。';
+                messagesDiv.appendChild(errorMessageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        }
+
+        // Allow sending question by pressing Enter key
+        document.getElementById('question').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent default form submission
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>

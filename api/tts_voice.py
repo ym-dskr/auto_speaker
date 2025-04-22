@@ -37,7 +37,12 @@ def text_to_speech(text, mp3_filename=None, wav_filename=None):
         model="gpt-4o-mini-tts", # 最新のTTSモデル
         input=text,
         voice="nova",
-        instructions="日本人の関西人のような訛りを入れて、はきはきと元気に話してください。",
+        instructions="""
+        - 日本人の関西人のような訛りを入れて、はきはきと元気に話してください。
+        - 「願いましては、○円なり…では」というような、そろばん問題の場合は、
+        ○円なり、の間毎に、5秒間隔をあけて、とてもゆっくりと発話してください。
+        
+        """,
         response_format="mp3",
     )
     

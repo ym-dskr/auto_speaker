@@ -124,6 +124,7 @@ target/
 /out-tsc
 /build
 /public/build
+/models*
 
 # 依存関係
 /vendor/
